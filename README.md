@@ -47,6 +47,12 @@ export PES_AUTHOR="Your Name <PESXUG24CS042>"
 ```
 
 If unset, it defaults to `"PES User <pes@localhost>"`.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+***Screenshot - Prerequisites ; cloning the repository & exporting it.***
+<img width="2131" height="1289" alt="image" src="https://github.com/user-attachments/assets/05c38940-0fbc-421f-b4ea-c97180921a56" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### File Inventory
 
@@ -380,11 +386,20 @@ The test program verifies:
 - Blob storage and retrieval (write, read back, compare)
 - Deduplication (same content → same hash → stored once)
 - Integrity checking (detects corrupted objects)
+  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 1A:** Output of `./test_objects` showing all tests passing.
+---
+<img width="2137" height="476" alt="image" src="https://github.com/user-attachments/assets/16f2cdfa-f6f6-4ab9-a304-8833de0e00d3" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 1B:** `find .pes/objects -type f` showing the sharded directory structure.
+---
+<img width="2132" height="200" alt="image" src="https://github.com/user-attachments/assets/e0fbd59b-b21b-4a0d-9116-531fd38552f4" />
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ---
 
 ## Phase 2: Tree Objects
@@ -413,11 +428,19 @@ The test program verifies:
 - Serialize → parse roundtrip preserves entries, modes, and hashes
 - Deterministic serialization (same entries in any order → identical output)
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 **📸 Screenshot 2A:** Output of `./test_tree` showing all tests passing.
+---
+<img width="2130" height="351" alt="image" src="https://github.com/user-attachments/assets/5416956e-22e8-4280-8341-ced8dc98fb37" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 2B:** Pick a tree object from `find .pes/objects -type f` and run `xxd .pes/objects/XX/YYY... | head -20` to show the raw binary format.
-
 ---
+<img width="2131" height="511" alt="image" src="https://github.com/user-attachments/assets/f77f6174-cd48-4a07-9036-ab4ef95fbcf6" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Phase 3: The Index (Staging Area)
 
@@ -470,10 +493,19 @@ echo "world" > file2.txt
 ./pes status
 cat .pes/index    # Human-readable text format
 ```
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 3A:** Run `./pes init`, `./pes add file1.txt file2.txt`, `./pes status` — show the output.
+---
+<img width="2132" height="1147" alt="image" src="https://github.com/user-attachments/assets/92493e93-3e07-4495-91d7-18f2451ac2e5" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 3B:** `cat .pes/index` showing the text-format index with your entries.
+---
+<img width="2135" height="132" alt="image" src="https://github.com/user-attachments/assets/2715069c-3281-40dd-888e-f340f1a47846" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ---
 
@@ -522,13 +554,35 @@ You can also run the full integration test:
 make test-integration
 ```
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 **📸 Screenshot 4A:** Output of `./pes log` showing three commits with hashes, authors, timestamps, and messages.
+---
+<img width="2150" height="1246" alt="image" src="https://github.com/user-attachments/assets/3c179eed-d337-408b-9d93-972a8db78130" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 4B:** `find .pes -type f | sort` showing object store growth after three commits.
+---
+<img width="2111" height="377" alt="image" src="https://github.com/user-attachments/assets/3dc55466-9b4b-4e60-a90a-52e1fb0e7632" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **📸 Screenshot 4C:** `cat .pes/refs/heads/main` and `cat .pes/HEAD` showing the reference chain.
-
 ---
+<img width="2108" height="118" alt="image" src="https://github.com/user-attachments/assets/ba96a015-796d-496b-93d4-d419fefc9293" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+**Final Screenshot**
+---
+<img width="2109" height="1230" alt="image" src="https://github.com/user-attachments/assets/3ea30565-6bcb-4a95-aee6-0f7e0f4a435f" />
+
+<img width="2119" height="1242" alt="image" src="https://github.com/user-attachments/assets/37c01d04-3035-4c7b-bb4c-9264f0320a9f" />
+
+<img width="2125" height="1139" alt="image" src="https://github.com/user-attachments/assets/aed92f82-ba95-48f7-95dc-a27ae0373298" />
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Phase 5 & 6: Analysis-Only Questions
 
@@ -536,19 +590,79 @@ The following questions cover filesystem concepts beyond the implementation scop
 
 ### Branching and Checkout
 
+---
+
 **Q5.1:** A branch in Git is just a file in `.git/refs/heads/` containing a commit hash. Creating a branch is creating a file. Given this, how would you implement `pes checkout <branch>` — what files need to change in `.pes/`, and what must happen to the working directory? What makes this operation complex?
+***Answer:-***
+To implement `pes checkout <branch>`, I would first read the target branch file at `.pes/refs/heads/<branch>` to get the commit hash. Then I would read that commit object to get its tree hash, recursively walk the tree, and restore every file into the working directory by reading each blob from the object store and writing it to disk. Finally, I would update `.pes/HEAD` to contain `ref: refs/heads/<branch>`.
+
+The files that change in `.pes/` are HEAD (updated to point to new branch) and the working directory files are restored to match the target branch's tree.
+
+What makes this complex is handling files that exist in the current branch but not in the target — those must be deleted. I also need to check for local modifications that would be overwritten, and refuse the checkout if any tracked file has uncommitted changes that conflict with the target branch.
+
+---
 
 **Q5.2:** When switching branches, the working directory must be updated to match the target branch's tree. If the user has uncommitted changes to a tracked file, and that file differs between branches, checkout must refuse. Describe how you would detect this "dirty working directory" conflict using only the index and the object store.
+***Answer:-***
+I would detect a dirty working directory conflict using only the index and object store as follows:
+
+First, I load the current index and compare each entry's stored mtime and size against the actual file on disk using stat(). If any file's metadata differs from what the index recorded, it has been modified since staging.
+
+Second, I compare the current index against the target branch's tree by reading the target commit's tree object. For any file that differs between the two branches, I check if the working directory version matches the current branch's expected content. If the working directory has local changes that would be overwritten by the checkout, I abort with an error.
+
+This requires no re-hashing — just metadata comparison against the index and tree object lookups from the object store.
+
+---
 
 **Q5.3:** "Detached HEAD" means HEAD contains a commit hash directly instead of a branch reference. What happens if you make commits in this state? How could a user recover those commits?
+***Answer:-***
+In detached HEAD state, HEAD contains a commit hash directly instead of ref: refs/heads/main. If I make commits in this state, each new commit is written to the object store and HEAD is updated to the new hash. However, no branch pointer is updated, so these commits are not reachable from any named branch.
+
+If I switch away from detached HEAD without creating a branch, those commits become unreachable — they exist in the object store but nothing points to them, so they appear lost.
+
+To recover them, I would find the lost commit hash from my terminal history, then create a new branch pointing to it:
+
+pes branch recovery-branch <lost-commit-hash>
+pes checkout recovery-branch
+
+This makes the commits reachable again by attaching a branch pointer to them.
+
+---
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### Garbage Collection and Space Reclamation
 
-**Q6.1:** Over time, the object store accumulates unreachable objects — blobs, trees, or commits that no branch points to (directly or transitively). Describe an algorithm to find and delete these objects. What data structure would you use to track "reachable" hashes efficiently? For a repository with 100,000 commits and 50 branches, estimate how many objects you'd need to visit.
+---
 
-**Q6.2:** Why is it dangerous to run garbage collection concurrently with a commit operation? Describe a race condition where GC could delete an object that a concurrent commit is about to reference. How does Git's real GC avoid this?
+**Q6.1:** Over time, the object store accumulates unreachable objects — blobs, trees, or commits that no branch points to (directly or transitively). Describe an algorithm to find and delete these objects. What data structure would you use to track "reachable" hashes efficiently? For a repository with 100,000 commits and 50 branches, estimate how many objects you'd need to visit.
+***Answer:-***
+I would implement garbage collection using a mark-and-sweep algorithm:
+
+Mark phase: Starting from every ref in .pes/refs/heads/ and HEAD, I traverse each reachable commit and add its hash to a hash set. For each commit, I follow its tree pointer and recursively add every tree and blob hash to the set. I then follow the parent pointer and repeat until the root commit.
+
+Sweep phase: I walk every file in .pes/objects/. For each object, I reconstruct its hash from its path and check if it exists in the visited set. If not, the object is unreachable and I delete it.
+
+I would use a hash set implemented as a hash table for O(1) insertion and lookup per object.
+
+For a repository with 100,000 commits and 50 branches, assuming each commit references an average of 10 unique objects (blobs and trees), I would need to visit approximately 1,000,000 objects during the mark phase across all 50 branch traversals.
 
 ---
+
+**Q6.2:** Why is it dangerous to run garbage collection concurrently with a commit operation? Describe a race condition where GC could delete an object that a concurrent commit is about to reference. How does Git's real GC avoid this?
+***Answer:-***
+There is a dangerous race condition between GC and a concurrent commit:
+
+1. GC scans all reachable objects and builds its reachable set
+2. A concurrent commit writes a new blob to the object store
+3. GC does not see this blob because the commit referencing it does not exist yet
+4. GC deletes the new blob as unreachable
+5. The commit process writes the commit object pointing to the now-deleted blob
+6. The repository is now corrupt — the commit references a missing blob
+
+Git avoids this by using a grace period — objects created within the last two weeks are never deleted by GC, even if they appear unreachable. This gives in-progress operations time to complete. Git also uses lock files to prevent concurrent GC runs, and writes objects to temporary files first before atomically renaming them, ensuring partially written objects are never treated as complete.
+
+---
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Submission Checklist
 
@@ -584,6 +698,11 @@ The following questions cover filesystem concepts beyond the implementation scop
 | GC (analysis-only)        | Q6.1, Q6.2       |
 
 -----------
+
+											 		   	~ Thank You ~
+---
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 ## Submission Requirements
 
