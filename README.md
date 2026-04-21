@@ -592,6 +592,7 @@ The following questions cover filesystem concepts beyond the implementation scop
 ---
 
 **Q5.1:** A branch in Git is just a file in `.git/refs/heads/` containing a commit hash. Creating a branch is creating a file. Given this, how would you implement `pes checkout <branch>` — what files need to change in `.pes/`, and what must happen to the working directory? What makes this operation complex?
+---
 ***Answer:-***
 To implement `pes checkout <branch>`, I would first read the target branch file at `.pes/refs/heads/<branch>` to get the commit hash. Then I would read that commit object to get its tree hash, recursively walk the tree, and restore every file into the working directory by reading each blob from the object store and writing it to disk. Finally, I would update `.pes/HEAD` to contain `ref: refs/heads/<branch>`.
 
@@ -602,6 +603,7 @@ What makes this complex is handling files that exist in the current branch but n
 ---
 
 **Q5.2:** When switching branches, the working directory must be updated to match the target branch's tree. If the user has uncommitted changes to a tracked file, and that file differs between branches, checkout must refuse. Describe how you would detect this "dirty working directory" conflict using only the index and the object store.
+---
 ***Answer:-***
 I would detect a dirty working directory conflict using only the index and object store as follows:
 
@@ -614,6 +616,7 @@ This requires no re-hashing — just metadata comparison against the index and t
 ---
 
 **Q5.3:** "Detached HEAD" means HEAD contains a commit hash directly instead of a branch reference. What happens if you make commits in this state? How could a user recover those commits?
+---
 ***Answer:-***
 In detached HEAD state, HEAD contains a commit hash directly instead of ref: refs/heads/main. If I make commits in this state, each new commit is written to the object store and HEAD is updated to the new hash. However, no branch pointer is updated, so these commits are not reachable from any named branch.
 
@@ -633,6 +636,7 @@ This makes the commits reachable again by attaching a branch pointer to them.
 ---
 
 **Q6.1:** Over time, the object store accumulates unreachable objects — blobs, trees, or commits that no branch points to (directly or transitively). Describe an algorithm to find and delete these objects. What data structure would you use to track "reachable" hashes efficiently? For a repository with 100,000 commits and 50 branches, estimate how many objects you'd need to visit.
+---
 ***Answer:-***
 I would implement garbage collection using a mark-and-sweep algorithm:
 
@@ -647,6 +651,7 @@ For a repository with 100,000 commits and 50 branches, assuming each commit refe
 ---
 
 **Q6.2:** Why is it dangerous to run garbage collection concurrently with a commit operation? Describe a race condition where GC could delete an object that a concurrent commit is about to reference. How does Git's real GC avoid this?
+---
 ***Answer:-***
 There is a dangerous race condition between GC and a concurrent commit:
 
