@@ -1,11 +1,15 @@
 # Building PES-VCS — A Version Control System from Scratch
-
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Objective:** Build a local version control system that tracks file changes, stores snapshots efficiently, and supports commit history. Every component maps directly to operating system and filesystem concepts.
 
 **Platform:** Ubuntu 22.04
 
 ---
-
+## 
+| Name | SRN |
+|------|-----|
+| Harshitha.B.T | PES1UG24AM118 |
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ## Getting Started
 
 ### Prerequisites
@@ -336,7 +340,10 @@ my_project/
 │       .pes/HEAD             →  "ref: refs/heads/main"         │
 └───────────────────────────────────────────────────────────────┘
 ```
-
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# **Operating Systems - Orange Problem - 2**
+ 
+ *OUTPUT SCREENSHOTS: -*
 ---
 
 ## Phase 1: Object Storage Foundation
