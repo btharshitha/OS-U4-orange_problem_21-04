@@ -627,7 +627,6 @@ pes checkout recovery-branch
 
 This makes the commits reachable again by attaching a branch pointer to them.
 
----
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### Garbage Collection and Space Reclamation
@@ -661,7 +660,7 @@ There is a dangerous race condition between GC and a concurrent commit:
 
 Git avoids this by using a grace period — objects created within the last two weeks are never deleted by GC, even if they appear unreachable. This gives in-progress operations time to complete. Git also uses lock files to prevent concurrent GC runs, and writes objects to temporary files first before atomically renaming them, ensuring partially written objects are never treated as complete.
 
----
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Submission Checklist
@@ -700,7 +699,7 @@ Git avoids this by using a grace period — objects created within the last two 
 -----------
 
 											 		   	~ Thank You ~
----
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
