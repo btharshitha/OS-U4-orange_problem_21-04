@@ -126,7 +126,7 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
     int fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC, 0444);
     if (fd < 0) { free(full); return -1; }
-    if (write(fd, full, full_len) < 0) { free(full); close(fd); return -1; };
+    if (write(fd, full, full_len) < 0) { free(full); close(fd); return -1; }
     free(full);
 
     // Step 7: fsync + rename (atomic)
