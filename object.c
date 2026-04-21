@@ -94,9 +94,51 @@ int object_exists(const ObjectID *id) {
 //
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-    // TODO: Implement
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
+    // Step 1: Build the header
+    const char *type_str = (type == OBJ_BLOB) ? "blob" :
+                           (type == OBJ_TREE) ? "tree" : "commit";
+    char header[64];
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len) + 1; // +1 for \0
+
+    // Step 2: Build full object = header + \0 + data
+    size_t full_len = header_len + len;
+    uint8_t *full = malloc(full_len);
+    if (!full) return -1;
+    memcpy(full, header, header_len);
+    memcpy(full + header_len, data, len);
+
+    // Step 3: Compute hash of full object
+    compute_hash(full, full_len, id_out);
+
+    // Step 4: Check deduplication
+    if (object_exists(id_out)) { free(full); return 0; }
+
+    // Step 5: Build path and create shard directory
+    char path[512], tmp_path[520];
+    object_path(id_out, path, sizeof(path));
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s", path);
+    char *slash = strrchr(dir, '/');
+    if (slash) *slash = '\0';
+    mkdir(dir, 0755);
+
+    // Step 6: Write to temp file
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
+    int fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC, 0444);
+    if (fd < 0) { free(full); return -1; }
+    if (write(fd, full, full_len) < 0) { free(full); close(fd); return -1; };
+    free(full);
+
+    // Step 7: fsync + rename (atomic)
+    fsync(fd);
+    close(fd);
+    if (rename(tmp_path, path) != 0) return -1;
+
+    // Step 8: fsync the shard directory
+    int dir_fd = open(dir, O_RDONLY);
+    if (dir_fd >= 0) { fsync(dir_fd); close(dir_fd); }
+
+    return 0;
 }
 
 // Read an object from the store.
